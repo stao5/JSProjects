@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+        <link href="https://fonts.googleapis.com/css2?family=Pangolin&display=swap" rel="stylesheet">
+
+        <style type = "text/css">
+
+            * {
+                padding: 0;
+                margin: 0;
+                box-sizing: border-box;
+            }
+
+
+
+            #top {
+                text-align: center;
+                display: flex;
+                height: 5rem;
+                justify-content: space-between;
+                padding: 0.8rem;
+                background-color: #13ba7a;
+            }
+
+            #top > div {
+                font-size: 2rem;
+                color: white;
+                font-family: 'Pangolin', cursive;
+                display: flex;
+                align-items: center;
+            }
+
+            canvas {
+                padding: 0;
+                margin: auto;
+                display: block;
+                margin-top: 0;
+            }
+
+
+
+        </style>
+    </head>
+
+    <body>
+        <div id = "top">
+            <div id = "score">
+                Score: 0
+            </div>
+            <div id = "title">
+                Snake Game
+            </div>
+            <div id = "highscore">
+                Highscore: 0
+            </div>
+        </div>
+
+        <canvas id = "draw" width="600" height="600" style="border: solid 2px black; box-sizing: content-box; margin-top: 3%;"></canvas>
+
+        <script type = "text/javascript">
+        
+        let canvas = document.getElementById("draw")
+
+        const SCALE = 20
+
+        const ROWS = canvas.height / SCALE
+
+        const COLUMNS = canvas.width / SCALE
+
+        const UP_ARROW = 87
+
+        const DOWN_ARROW = 83
+
+        const LEFT_ARROW = 65
+
+        const RIGHT_ARROW = 68
+
+        let gameover = true
+
+        let applesEaten = 1
+
+        let tail = []
+
+
+        class Snake {
+            constructor(x, y, width, height){
+                this.x = x
+                this.y = y
+                this.width = width
+                this.height = height
+
+                this.dx = SCALE
+                this.dy = 0
+                
+            }
+            
+            draw(){
+                let pen = canvas.getContext('2d') 
+                pen.fillStyle = "#00cc00"
+                for(let i = 0; i < tail.length; i++){
+                    pen.fillRect(tail[i].x, tail[i].y, this.width, this.height)
+                    pen.strokeRect(tail[i].x, tail[i].y, this.width, this.height)
+                }
+            }
+
+            move(){
+
+                for(let i = tail.length - 1; i > 0; i--){
+                    tail[i].x = tail[i-1].x
+                    tail[i].y = tail[i-1].y
+                }
+
+                this.x += this.dx;
+                this.y += this.dy;
+            }
+      
+        }
+            
+        class Fruit {
+            constructor(x, y, width, height){
+                this.x = x
+                this.y = y
+                this.width = width
+                this.height = height
+            }
+
+            draw() {
+                let pen = canvas.getContext('2d')
+                pen.fillStyle = "#d41c1c"
+                pen.fillRect(this.x, this.y, this.width, this.height)
+                pen.strokeRect(this.x, this.y, this.width, this.height)
+            }
+        }
+
+        let score = document.getElementById("score")
+
+        let highscore_display = document.getElementById("highscore")
+
+        let title = document.getElementById("title")
+
+        if(localStorage.getItem("highscore") == null){
+            localStorage.setItem("highscore", 0)
+        }
+
+        let highscore = localStorage.getItem("highscore")
+
+        let snake = new Snake(0, 0, SCALE, SCALE)
+
+        tail.push(snake)
+
+        let fruit = new Fruit(0, 0, SCALE, SCALE)
+
+        
+
+        function init(){
+            document.addEventListener("keydown" , KeyDown)
+            title.addEventListener("click", reset)
+            reset()
+        }
+
+        function reset(event){
+            if(gameover == true){
+                gameover = false
+                applesEaten = 1
+
+                title.innerHTML = "Snake Game"
+                score.innerHTML = "Score: 0"
+                window.localStorage.setItem("highscore", highscore)
+                highscore_display.innerHTML = "Highscore: " + highscore
+
+                PickFruitLocation()
+                ResetSnake()
+                requestAnimationFrame(nextFrame)
+            }
+        }
+
+
+        function ResetSnake(){
+            tail.splice(1, tail.length - 1)
+            tail[0].x = 0
+            tail[0].y = 0
+            tail[0].dx = SCALE
+            tail[0].dy = 0   
+        }
+
+        function KeyDown(event){
+            if(event.keyCode == UP_ARROW && tail[0].dy != SCALE){
+                tail[0].dy = -SCALE
+                tail[0].dx = 0
+
+            } else if(event.keyCode == DOWN_ARROW && tail[0].dy != -SCALE){
+                tail[0].dy = SCALE
+                tail[0].dx = 0
+
+            } else if(event.keyCode == LEFT_ARROW && tail[0].dx != SCALE){
+                tail[0].dy = 0
+                tail[0].dx = -SCALE
+
+            } else if(event.keyCode == RIGHT_ARROW && tail[0].dx != -SCALE){
+                tail[0].dy = 0
+                tail[0].dx = SCALE
+
+            }
+        }
+
+        function WithinCanvas(){
+            if(tail[0].x + tail[0].width > canvas.width){
+                return false
+            } else if (tail[0].x < 0){
+                return false 
+            } else if (tail[0].y < 0){
+                return false
+            } else if (tail[0].y + tail[0].height > canvas.height){
+                return false
+            } else {
+                return true
+            }
+        }
+
+        function DoesCollide(rect1, rect2){
+            if(rect1.x + rect1.width > rect2.x && rect1.x < rect2.x + rect2.width 
+            && rect1.y + rect1.height > rect2.y && rect1.y < rect2.y + rect2.height){
+                return true
+            } else {
+                return false
+            }
+        }
+
+
+        function PickFruitLocation(){
+            fruit.x = Math.floor((Math.random() * COLUMNS - 1) + 1) * SCALE
+            fruit.y = Math.floor((Math.random() * ROWS - 1) + 1) * SCALE
+        }
+
+        function SnakeEat(){
+            let snake = new Snake(tail[tail.length - 1].x, tail[tail.length - 1].y, SCALE, SCALE)
+            tail.push(snake)
+        }
+
+
+        function nextFrame(time){
+            setTimeout(function(){
+
+                snake.move()
+
+                let pen = canvas.getContext("2d")
+                
+                if(DoesCollide(tail[0], fruit)){
+                    PickFruitLocation()
+                    SnakeEat()
+                    applesEaten++
+                    score.innerHTML = "Score: " + applesEaten
+                }
+
+                for(let i = 4; i < tail.length; i++){
+                    if(DoesCollide(tail[0], tail[i])){
+                        gameover = true
+                        console.log("hi")
+                        break
+                    }
+                }
+
+                
+
+                if(WithinCanvas() && gameover == false){
+                    pen.clearRect(0, 0, canvas.width, canvas.height)
+                    fruit.draw()
+                    snake.draw()
+                    requestAnimationFrame(nextFrame)
+                } else {
+                    gameover = true
+
+                    title.innerHTML = "Game over! Click to reset"
+
+                    if(applesEaten > highscore){
+                        localStorage.setItem("highscore", applesEaten)
+                        highscore = applesEaten
+                        highscore_display.innerHTML = "Highscore: " + highscore
+                    }
+
+                }
+            }, 250)
+        }
+
+        window.onload = init
+        
+        </script>
+    </body>
+
+</html>
